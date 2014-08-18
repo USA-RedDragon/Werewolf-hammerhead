@@ -42,6 +42,18 @@
 /* Can be ORed in to make sure the process is reverted back to SCHED_NORMAL on fork */
 #define SCHED_RESET_ON_FORK     0x40000000
 
+#define TASK_PFA_TEST(name, func) \
+static inline bool task_##func(struct task_struct *p) \
+{ return test_bit(PFA_##name, &p->atomic_flags); }
+
+#define TASK_PFA_SET(name, func) \
+static inline void task_set_##func(struct task_struct *p) \
+{ set_bit(PFA_##name, &p->atomic_flags); }
+
+#define TASK_PFA_CLEAR(name, func) \
+static inline void task_clear_##func(struct task_struct *p) \
+{ clear_bit(PFA_##name, &p->atomic_flags); }
+
 #ifdef __KERNEL__
 
 struct sched_param {
