@@ -333,6 +333,14 @@ static const struct usbmix_name_map kef_x300a_map[] = {
 	{ 0 }
 };
 
+/* some (all?) SCMS USB3318 devices are affected by a firmware lock up
+ * when anything attempts to access FU 10 (control)
+ */
+static const struct usbmix_name_map scms_usb3318_map[] = {
+	{ 10, NULL },
+	{ 0 }
+};
+
 /*
  * Control map entries
  */
@@ -426,7 +434,12 @@ static struct usbmix_ctl_map usbmix_ctl_maps[] = {
 	},
 	{
 		.id = USB_ID(0x27ac, 0x1000),
-		.map = kef_x300a_map,
+		.map = scms_usb3318_map,
+	},
+	{
+		/* Arcam rPAC */
+		.id = USB_ID(0x25c4, 0x0003),
+		.map = scms_usb3318_map,
 	},
 	{ 0 } /* terminator */
 };
