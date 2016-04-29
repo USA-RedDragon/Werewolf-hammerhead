@@ -84,3 +84,7 @@ GTAGS
 *.orig
 *~
 \#*#
+zip/zImage
+arch/arm/crypto/sha256-core.S
+kernel/hz.bc
+arch/arm/mach-msm/smd_rpc_sym.c
