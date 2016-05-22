@@ -1,3 +1,4 @@
+CFLAGS_KERNEL := -Wno-bool-compare -Wno-logical-not-parentheses
 ccflags-$(CONFIG_POWER_SUPPLY_DEBUG) := -DDEBUG
 
 power_supply-y				:= power_supply_core.o

@@ -5,7 +5,7 @@
 # EDIFY properties
 kernel.string=Werewolf Kernel
 do.devicecheck=1
-do.modules=1
+do.modules=0
 do.cleanup=1
 device.name1=hammerheadcaf
 device.name2=

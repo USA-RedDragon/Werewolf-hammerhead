@@ -22,6 +22,14 @@ LC_COLLATE=C
 LC_NUMERIC=C
 export LC_COLLATE LC_NUMERIC
 
+HOST_CFLAGS_CUSTOM = -O3 -fgcse-las -fgraphite -floop-flatten -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block
+TARGET_CFLAGS_CUSTOM = -O3 -munaligned-access -fgcse-sm -fgcse-las -fsched-spec-load -fforce-addr -ffast-math -fsingle-precision-constant -mcpu=cortex-a15 -mtune=cortex-a15 -marm -mfpu=neon-vfpv4 -ftree-vectorize -mvectorize-with-neon-quad -funroll-loops -ftree-loop-im -ftree-loop-ivcanon -fprefetch-loop-arrays -fmodulo-sched -fmodulo-sched-allow-regmoves -fivopts -fgraphite-identity -floop-flatten -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block -floop-nest-optimize -frename-registers -fira-loop-pressure
+TARGET_MODULE_CFLAGS_CUSTOM = -DMODULE $(TARGET_CFLAGS_CUSTOM)
+KBUILD_CFLAGS_CUSTOM = -O3 $(call cc-disable-warning,maybe-uninitialized) -fno-inline-functions $(call cc-disable-warning,array-bounds) $(call cc-option,-fconserve-stack) $(call cc-option,--param=allow-store-data-races=0) $(call cc-option, -fno-var-tracking-assignments) $(call cc-option,-Werror=implicit-int) $(call cc-option,-Werror=strict-prototypes) -Wno-sizeof-pointer-memaccess -Wbool-compare -fomit-frame-pointer $(TARGET_CFLAGS_CUSTOM)
+ifeq ($(PTHREADS),1)
+        HOST_CFLAGS_CUSTOM += -floop-parallelize-all
+        TARGET_CFLAGS_CUSTOM += -floop-parallelize-all -fopenmp
+endif
 # We are using a recursive build, so we need to do a little thinking
 # to get the ordering right.
 #
@@ -245,8 +253,8 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 
 HOSTCC       = gcc
 HOSTCXX      = g++
-HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer
-HOSTCXXFLAGS = -O2
+HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -fomit-frame-pointer $(HOST_CFLAGS_CUSTOM)
+HOSTCXXFLAGS = $(HOST_CFLAGS_CUSTOM)
 
 # Decide whether to build built-in, modular, or both.
 # Normally, just do built-in.
@@ -351,11 +359,11 @@ CC		= $(srctree)/scripts/gcc-wrapper.py $(REAL_CC)
 
 CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void $(CF)
-CFLAGS_MODULE   =
-AFLAGS_MODULE   =
-LDFLAGS_MODULE  =
-CFLAGS_KERNEL	=
-AFLAGS_KERNEL	=
+CFLAGS_MODULE   = $(TARGET_MODULE_CFLAGS_CUSTOM) 
+AFLAGS_MODULE   = $(TARGET_MODULE_CFLAGS_CUSTOM)
+LDFLAGS_MODULE  = -T $(srctree)/scripts/module-common.lds
+CFLAGS_KERNEL	= $(TARGET_CFLAGS_CUSTOM)
+AFLAGS_KERNEL	= $(TARGET_CFLAGS_CUSTOM)
 CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
 
@@ -368,11 +376,12 @@ LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 
-KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+KBUILD_CFLAGS  := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
-		   -fno-delete-null-pointer-checks
+		   -fno-delete-null-pointer-checks \
+                   $(KBUILD_CFLAGS_CUSTOM)
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__
@@ -562,17 +571,7 @@ endif # $(dot-config)
 # Defaults to vmlinux, but the arch makefile usually adds further targets
 all: vmlinux
 
-ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
-KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
-else
-KBUILD_CFLAGS	+= -O2
-endif
-
 include $(srctree)/arch/$(SRCARCH)/Makefile
-
-ifneq ($(CONFIG_FRAME_WARN),0)
-KBUILD_CFLAGS += $(call cc-option,-Wframe-larger-than=${CONFIG_FRAME_WARN})
-endif
 
 # Force gcc to behave correct even for buggy distributions
 ifndef CONFIG_CC_STACKPROTECTOR
@@ -582,21 +581,6 @@ endif
 # This warning generated too much noise in a regular build.
 # Use make W=1 to enable this warning (see scripts/Makefile.build)
 KBUILD_CFLAGS += $(call cc-disable-warning, unused-but-set-variable)
-
-ifdef CONFIG_FRAME_POINTER
-KBUILD_CFLAGS	+= -fno-omit-frame-pointer -fno-optimize-sibling-calls
-else
-# Some targets (ARM with Thumb2, for example), can't be built with frame
-# pointers.  For those, we don't have FUNCTION_TRACER automatically
-# select FRAME_POINTER.  However, FUNCTION_TRACER adds -pg, and this is
-# incompatible with -fomit-frame-pointer with current GCC, so we don't use
-# -fomit-frame-pointer with FUNCTION_TRACER.
-ifndef CONFIG_FUNCTION_TRACER
-KBUILD_CFLAGS	+= -fomit-frame-pointer
-endif
-endif
-
-KBUILD_CFLAGS   += $(call cc-option, -fno-var-tracking-assignments)
 
 ifdef CONFIG_DEBUG_INFO
 KBUILD_CFLAGS	+= -g
@@ -634,9 +618,6 @@ KBUILD_CFLAGS += $(call cc-disable-warning, pointer-sign)
 
 # disable invalid "can't wrap" optimizations for signed / pointers
 KBUILD_CFLAGS	+= $(call cc-option,-fno-strict-overflow)
-
-# conserve stack if available
-KBUILD_CFLAGS   += $(call cc-option,-fconserve-stack)
 
 # use the deterministic mode of AR if available
 KBUILD_ARFLAGS := $(call ar-option,D)
