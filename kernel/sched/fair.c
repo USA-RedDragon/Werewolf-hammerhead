@@ -3699,8 +3699,6 @@ static int move_one_task(struct lb_env *env)
 		 * stats here rather than inside move_task().
 		 */
 		schedstat_inc(env->sd, lb_gained[env->idle]);
-		per_cpu(dbs_boost_load_moved, env->dst_cpu) += pct_task_load(p);
-
 		return 1;
 	}
 	return 0;
@@ -3759,8 +3757,6 @@ static int move_tasks(struct lb_env *env)
 		move_task(p, env);
 		pulled++;
 		env->load_move -= load;
-		per_cpu(dbs_boost_load_moved, env->dst_cpu) += pct_task_load(p);
-
 #ifdef CONFIG_PREEMPT
 		/*
 		 * NEWIDLE balancing is a source of latency, so preemptible
@@ -5041,18 +5037,10 @@ more_balance:
 	} else {
 		sd->nr_balance_failed = 0;
 		if (per_cpu(dbs_boost_needed, this_cpu)) {
-			struct migration_notify_data mnd;
-
-			mnd.src_cpu = cpu_of(busiest);
-			mnd.dest_cpu = this_cpu;
-			mnd.load = per_cpu(dbs_boost_load_moved, this_cpu);
-			if (mnd.load > 100)
-				mnd.load = 100;
-			atomic_notifier_call_chain(&migration_notifier_head,
-						   0, (void *)&mnd);
 			per_cpu(dbs_boost_needed, this_cpu) = false;
-			per_cpu(dbs_boost_load_moved, this_cpu) = 0;
-
+			atomic_notifier_call_chain(&migration_notifier_head,
+						   this_cpu,
+						   (void *)cpu_of(busiest));
 		}
 	}
 	if (likely(!active_balance)) {
@@ -5218,18 +5206,10 @@ out_unlock:
 	busiest_rq->active_balance = 0;
 	raw_spin_unlock_irq(&busiest_rq->lock);
 	if (per_cpu(dbs_boost_needed, target_cpu)) {
-		struct migration_notify_data mnd;
-
-		mnd.src_cpu = cpu_of(busiest_rq);
-		mnd.dest_cpu = target_cpu;
-		mnd.load = per_cpu(dbs_boost_load_moved, target_cpu);
-		if (mnd.load > 100)
-			mnd.load = 100;
-		atomic_notifier_call_chain(&migration_notifier_head,
-					   0, (void *)&mnd);
-
 		per_cpu(dbs_boost_needed, target_cpu) = false;
-		per_cpu(dbs_boost_load_moved, target_cpu) = 0;
+		atomic_notifier_call_chain(&migration_notifier_head,
+					   target_cpu,
+					   (void *)cpu_of(busiest_rq));
 	}
 	return 0;
 }
