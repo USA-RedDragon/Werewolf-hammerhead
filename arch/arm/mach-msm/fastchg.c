@@ -17,8 +17,8 @@
 /*
  * Possible values for "force_fast_charge" are :
  *
- *   0 - disabled (default)
- *   1 - increase charge current limit to 900mA
+ *   0 - disabled
+ *   1 - increase charge current limit to 900mA (default)
 */
 
 #include <linux/kobject.h>
@@ -26,7 +26,7 @@
 #include <linux/fastchg.h>
 #include <linux/string.h>
 
-int force_fast_charge = 0;
+int force_fast_charge = 1;
 static int __init get_fastcharge_opt(char *ffc)
 {
 	if (strcmp(ffc, "0") == 0) {
