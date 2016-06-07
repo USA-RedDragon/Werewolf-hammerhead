@@ -25,7 +25,7 @@ if [ -a ${zImagePath} ] ; then
 	cp ${zImagePath} zip/zImage
 	find -name '*.ko' -exec cp -av {} zip//modules/ \;
 	cd zip
-	zip -q -r ${kernel}-${device}-${version}.zip anykernel.sh  META-INF  modules  ramdisk  tools zImage
+	zip -q -r ${kernel}-${device}-${version}.zip anykernel.sh  META-INF  tools zImage
 else
 	echo -e "\n\e[31m***** Build Failed *****\e[0m\n"
 fi
