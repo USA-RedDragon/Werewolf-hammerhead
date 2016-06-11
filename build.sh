@@ -8,7 +8,7 @@ export makeopts="-j$(nproc)"
 export zImagePath="arch/arm/boot/zImage-dtb"
 export KBUILD_BUILD_USER=USA-RedDragon
 export KBUILD_BUILD_HOST=EdgeOfCreation
-export CROSS_COMPILE="ccache /root/deso/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-"
+export CROSS_COMPILE="ccache /root/deso/prebuilts/gcc/linux-x86/arm/arm-eabi-5.4-gnu/bin/arm-eabi-"
 export ARCH=arm
 
 export version=$(cat version)

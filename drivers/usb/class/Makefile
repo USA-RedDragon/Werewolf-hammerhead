@@ -3,6 +3,8 @@
 # (one step up from the misc category)
 #
 
+ccflags-y  := -Wno-unused-const-variable
+
 obj-$(CONFIG_USB_ACM)		+= cdc-acm.o
 obj-$(CONFIG_USB_PRINTER)	+= usblp.o
 obj-$(CONFIG_USB_WDM)		+= cdc-wdm.o
